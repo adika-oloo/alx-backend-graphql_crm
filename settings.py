@@ -61,4 +61,15 @@ GRAPHENE = {
     "SCHEMA": "graphql_crm.schema.schema"
 }
 
+
+
 STATIC_URL = "/static/"
+
+INSTALLED_APPS = [
+    ...,
+    "django_crontab",
+]
+
+CRONJOBS = [
+    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
+]
