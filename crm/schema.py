@@ -1,44 +1,50 @@
 import graphene
-from .models import Customer, Order
+from graphene_django import DjangoObjectType
+from crm.models import Product   # assuming you have a Product model
 
 
-# Example Types
-class CustomerType(graphene.ObjectType):
-    id = graphene.ID()
-    name = graphene.String()
-    email = graphene.String()
+class ProductType(DjangoObjectType):
+    class Meta:
+        model = Product
+        fields = ("id", "name", "stock")
 
 
-class OrderType(graphene.ObjectType):
-    id = graphene.ID()
-    product = graphene.String()
-    quantity = graphene.Int()
-
-
-# Queries for CRM
-class Query(graphene.ObjectType):
-    all_customers = graphene.List(CustomerType)
-    all_orders = graphene.List(OrderType)
-
-    def resolve_all_customers(self, info):
-        return Customer.objects.all()
-
-    def resolve_all_orders(self, info):
-        return Order.objects.all()
-
-
-# Example Mutation (add more as needed)
-class CreateCustomer(graphene.Mutation):
+class UpdateLowStockProducts(graphene.Mutation):
     class Arguments:
-        name = graphene.String(required=True)
-        email = graphene.String(required=True)
+        # no external args, it operates internally
+        pass
 
-    customer = graphene.Field(CustomerType)
+    success = graphene.Boolean()
+    message = graphene.String()
+    updated_products = graphene.List(ProductType)
 
-    def mutate(self, info, name, email):
-        customer = Customer.objects.create(name=name, email=email)
-        return CreateCustomer(customer=customer)
+    @classmethod
+    def mutate(cls, root, info):
+        low_stock_products = Product.objects.filter(stock__lt=10)
+
+        updated = []
+        for product in low_stock_products:
+            product.stock += 10  # simulate restocking
+            product.save()
+            updated.append(product)
+
+        if updated:
+            return UpdateLowStockProducts(
+                success=True,
+                message="Low-stock products restocked successfully.",
+                updated_products=updated,
+            )
+        else:
+            return UpdateLowStockProducts(
+                success=True,
+                message="No products required restocking.",
+                updated_products=[],
+            )
 
 
 class Mutation(graphene.ObjectType):
-    create_customer = CreateCustomer.Field()
+    update_low_stock_products = UpdateLowStockProducts.Field()
+
+
+schema = graphene.Schema(mutation=Mutation)
+
