@@ -1,25 +1,8 @@
-# crm/cron.py
-from gql import gql, Client
-from gql.transport.requests import RequestsHTTPTransport
+from datetime import datetime
 
-def order_reminder():
-    transport = RequestsHTTPTransport(
-        url="http://127.0.0.1:8000/graphql/",  # Adjust if different
-        verify=True,
-        retries=3,
-    )
+def log_crm_heartbeat():
+    """Logs a heartbeat timestamp to /tmp/crm_heartbeat_log.txt"""
+    with open("/tmp/crm_heartbeat_log.txt", "a") as f:
+        f.write(f"CRM heartbeat at {datetime.now()}\n")
 
-    client = Client(transport=transport, fetch_schema_from_transport=True)
-
-    query = gql("""
-        query {
-            hello
-        }
-    """)
-
-    try:
-        result = client.execute(query)
-        print("GraphQL response:", result)
-    except Exception as e:
-        print("Error executing GraphQL query:", e)
 

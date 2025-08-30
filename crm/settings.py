@@ -17,3 +17,11 @@ CRONJOBS = [
     # Runs every minute for testing
     ('* * * * *', 'crm.cron.order_reminder', '>> /tmp/order_reminder.log 2>&1'),
 ]
+INSTALLED_APPS = [
+    # other apps...
+    "django_crontab",
+]
+
+CRONJOBS = [
+    ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
+]
