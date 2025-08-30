@@ -1,39 +1,31 @@
-import datetime
 from celery import shared_task
-from gql import gql, Client
-from gql.transport.requests import RequestsHTTPTransport
+from datetime import datetime
+import requests
+import json
 
 @shared_task
 def generate_crm_report():
-    # GraphQL transport
-    transport = RequestsHTTPTransport(
-        url="http://localhost:8000/graphql/",
-        verify=True,
-        retries=3,
-    )
-    client = Client(transport=transport, fetch_schema_from_transport=True)
-
-    query = gql("""
+    # GraphQL query for customers, orders, revenue
+    query = """
     query {
-        customersCount
-        ordersCount
-        totalRevenue
+        customers { id }
+        orders { id totalAmount }
     }
-    """)
+    """
 
-    try:
-        response = client.execute(query)
+    url = "http://localhost:8000/graphql/"  # Adjust if needed
+    response = requests.post(url, json={"query": query})
+    data = response.json().get("data", {})
 
-        customers = response.get("customersCount", 0)
-        orders = response.get("ordersCount", 0)
-        revenue = response.get("totalRevenue", 0)
+    total_customers = len(data.get("customers", []))
+    orders = data.get("orders", [])
+    total_orders = len(orders)
+    total_revenue = sum([order.get("totalAmount", 0) for order in orders])
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"{timestamp} - Report: {customers} customers, {orders} orders, {revenue} revenue\n"
+    log_message = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Report: {total_customers} customers, {total_orders} orders, {total_revenue} revenue\n"
 
-        with open("/tmp/crm_report_log.txt", "a") as f:
-            f.write(log_message)
+    with open("/tmp/crm_report_log.txt", "a") as f:
+        f.write(log_message)
 
-    except Exception as e:
-        with open("/tmp/crm_report_log.txt", "a") as f:
-            f.write(f"Error generating report: {str(e)}\n")
+    return log_message
+
