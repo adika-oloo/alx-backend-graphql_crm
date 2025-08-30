@@ -1,0 +1,4 @@
+Django>=4.2,<5.0
+graphene-django
+django-crontab
+gql[requests]   # ✅ includes gql + requests transport

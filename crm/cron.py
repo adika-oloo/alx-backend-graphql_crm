@@ -1,32 +1,25 @@
-import datetime
-import requests
+# crm/cron.py
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 
-def log_crm_heartbeat():
-    """
-    Logs a heartbeat every 5 minutes to /tmp/crm_heartbeat_log.txt
-    and optionally queries the GraphQL hello endpoint.
-    """
-    timestamp = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-    message = f"{timestamp} CRM is alive"
+def order_reminder():
+    transport = RequestsHTTPTransport(
+        url="http://127.0.0.1:8000/graphql/",  # Adjust if different
+        verify=True,
+        retries=3,
+    )
+
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+
+    query = gql("""
+        query {
+            hello
+        }
+    """)
 
     try:
-        # Optional GraphQL hello query
-        response = requests.post(
-            "http://localhost:8000/graphql",
-            json={"query": "{ hello }"},
-            timeout=5
-        )
-        if response.status_code == 200:
-            data = response.json()
-            hello_msg = data.get("data", {}).get("hello", "No hello response")
-            message += f" | GraphQL says: {hello_msg}"
-        else:
-            message += " | GraphQL unreachable"
+        result = client.execute(query)
+        print("GraphQL response:", result)
     except Exception as e:
-        message += f" | GraphQL error: {e}"
+        print("Error executing GraphQL query:", e)
 
-    # Append to log file
-    with open("/tmp/crm_heartbeat_log.txt", "a") as f:
-        f.write(message + "\n")
-
-    print(message)
